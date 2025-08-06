@@ -1,14 +1,74 @@
 from autoencoder import autoencoder
+import pandas as pd
 import numpy as np
 import sklearn
 from sklearn.preprocessing import StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.model_selection import train_test_split
 
 # Parameters definition
 my_epochs = 30
-input_length = 10
+input_length = 16
 
 
 # Import data
+
+
+# Charger le CSV
+df = pd.read_csv("full_dataset.csv")
+
+# Nettoyer les noms de colonnes
+df.columns = [col.strip() for col in df.columns]
+
+# Enleve les données anormales
+df = df[df['access_granted'] == True].copy()
+
+# Transformer le timestamp
+df['timestamp'] = pd.to_datetime(df['timestamp'])
+df['hour'] = df['timestamp'].dt.hour
+df['day_of_week'] = df['timestamp'].dt.dayofweek
+df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / 24)
+df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / 24)
+df['dow_sin'] = np.sin(2 * np.pi * df['day_of_week'] / 7)
+df['dow_cos'] = np.cos(2 * np.pi * df['day_of_week'] / 7)
+df.drop(columns=['timestamp', 'hour', 'day_of_week'], inplace=True)
+
+# Séparer geo_coordinates en lat/lon
+df[['lat', 'lon']] = df['geo_coordinates'].str.split(',', expand=True).astype(float)
+df.drop(columns=['geo_coordinates'], inplace=True)
+
+# Supprimer access_granted (utilisé plus tard pour l'évaluation)
+df.drop(columns=['access_granted'], inplace=True) # suppression car non supervisé (entriané que sur données normales, mais du coup ici on a des donnes anormales)
+
+# Colonnes numériques et catégorielles
+num_cols = ['session_duration', 'power_usage', 'risk_score', 'lat', 'lon',
+            'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos']
+cat_cols = ['role', 'location', 'behavior_context']
+
+# Vérification rapide
+assert all(col in df.columns for col in num_cols + cat_cols), "Colonne manquante !"
+
+# Pipeline de prétraitement
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', MinMaxScaler(), num_cols),
+        ('cat', OneHotEncoder(), cat_cols)
+    ]
+)
+
+# Transformation
+X = preprocessor.fit_transform(df)
+
+# Split train/val
+X_train, X_val = train_test_split(X, test_size=0.2, random_state=42)
+input_dim = X.shape[1]
+print(input_dim)
+
+
+
+
+'''
 # Here : prepare input data
 # Input data is 10 000 vectors (with a length of 10) of number link by an affine relationship 
 
@@ -37,12 +97,12 @@ x_test = np.transpose(x_test)
 scaler = StandardScaler()
 x_train = scaler.fit_transform(x_train)
 x_test = scaler.transform(x_test)
-
+'''
 
 # Train of the autoencoder from autoencoder.py
 autoencoder = autoencoder(my_epochs,input_length)
 autoencoder.compile()
-autoencoder.model.fit(x_train, x_train, epochs=my_epochs,batch_size=128, shuffle=False, validation_data=(x_test, x_test))
+autoencoder.model.fit(X_train, X_train, epochs=my_epochs,batch_size=128, shuffle=False, validation_data=(X_val, X_val))
 
 
 # Save parameters of the autoencoder in autoencoder.pth (PyTorch)

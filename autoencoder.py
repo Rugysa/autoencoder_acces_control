@@ -19,8 +19,8 @@ class autoencoder :
   # 10 -> Dense -> 6 -> Dense -> 2
   # Return the encoder model's if necessary
   def encoder(self):
-    encoded = Dense(6, activation='relu',)(self.input)
-    self.output_encoder = Dense(2, activation='relu',)(encoded)
+    encoded = Dense(10, activation='relu',)(self.input)
+    self.output_encoder = Dense(3, activation='relu',)(encoded)
     self.encoder = Model(self.input, self.output_encoder)
     return self.encoder
 
@@ -28,8 +28,8 @@ class autoencoder :
   # 2 -> Dense -> 6 -> Dense -> 10
   # Return the decoder model's if necessary
   def decoder(self): 
-    decoded = Dense(6, activation='relu')(self.output_encoder) 
-    self.output = Dense(10, activation='linear')(decoded)
+    decoded = Dense(10, activation='relu')(self.output_encoder) 
+    self.output = Dense(16, activation='linear')(decoded)
     self.decoder = Model(self.output_encoder, self.output)
     return self.decoder
 
