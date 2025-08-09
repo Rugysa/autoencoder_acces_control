@@ -4,6 +4,9 @@ from keras.models import Model
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 from risk_utils import risk_utils
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 
 
@@ -14,6 +17,60 @@ def label(score : float) :
   return score > (utils.get_threshold())
 
 # Receive data
+
+# Charger le CSV
+df = pd.read_csv("full_dataset.csv")
+
+# Nettoyer les noms de colonnes
+df.columns = [col.strip() for col in df.columns]
+
+# Transformer le timestamp
+df['timestamp'] = pd.to_datetime(df['timestamp'])
+df['hour'] = df['timestamp'].dt.hour
+df['day_of_week'] = df['timestamp'].dt.dayofweek
+df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / 24)
+df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / 24)
+df['dow_sin'] = np.sin(2 * np.pi * df['day_of_week'] / 7)
+df['dow_cos'] = np.cos(2 * np.pi * df['day_of_week'] / 7)
+df.drop(columns=['timestamp', 'hour', 'day_of_week'], inplace=True)
+
+# Séparer geo_coordinates en lat/lon
+df[['lat', 'lon']] = df['geo_coordinates'].str.split(',', expand=True).astype(float)
+df.drop(columns=['geo_coordinates'], inplace=True)
+
+
+# Colonnes numériques et catégorielles
+num_cols = ['session_duration', 'power_usage', 'risk_score', 'lat', 'lon',
+            'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos']
+cat_cols = ['role', 'location', 'behavior_context']
+
+
+# Enleve les données normales
+df_neg = df[df['access_granted'] == False].copy()
+# Enleve les données anormales
+df_pos = df[df['access_granted'] == True].copy()
+
+
+# Supprimer access_granted (utilisé plus tard pour l'évaluation)
+df_pos.drop(columns=['access_granted'], inplace=True) # suppression car non supervisé (entriané que sur données normales, mais du coup ici on a des donnes anormales)
+# Supprimer access_granted (utilisé plus tard pour l'évaluation)
+df_neg.drop(columns=['access_granted'], inplace=True) # suppression car non supervisé (entriané que sur données normales, mais du coup ici on a des donnes anormales)
+
+
+# Pipeline de prétraitement
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', MinMaxScaler(), num_cols),
+        ('cat', OneHotEncoder(), cat_cols)
+    ]
+)
+
+# Transformation
+X = preprocessor.fit_transform(df_pos)
+X_neg = preprocessor.fit_transform(df_neg)
+
+
+"""
 # For now, we create data such as vectors with the same size that in train_autoencoder
 
 # Base
@@ -40,25 +97,26 @@ x_test_neg = np.transpose(x_test_neg)
 scaler = StandardScaler()
 x_test = scaler.fit_transform(x_test)
 x_test_neg = scaler.fit_transform(x_test_neg)
+"""
 
 # Load the model from .keras
 ai_engine = keras.models.load_model("model/autoencoder.keras")
 
 # Prediction of the autoencoder
 # output of positive data
-x_predict = ai_engine.predict(x_test)
+x_predict = ai_engine.predict(X)
 # output of negative data 
-x_predict_neg = ai_engine.predict(x_test_neg)
+x_predict_neg = ai_engine.predict(X_neg)
 
 # Console display of distances and tags
 # Positive data
 print('Dist positive data')
-dist = sklearn.metrics.mean_squared_error(x_test, x_predict)
+dist = sklearn.metrics.mean_squared_error(X, x_predict)
 print(dist)
 print(label(dist))
 
 # Negative data
 print('Dist negative data')
-dist_neg = sklearn.metrics.mean_squared_error(x_test_neg, x_predict_neg)
+dist_neg = sklearn.metrics.mean_squared_error(X_neg, x_predict_neg)
 print(dist_neg)
 print(label(dist_neg))

@@ -6,6 +6,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.model_selection import train_test_split
+import keras
+from keras.layers import Input, Dense, Dropout
+from keras.models import Model
 
 # Parameters definition
 my_epochs = 30
@@ -64,9 +67,37 @@ X = preprocessor.fit_transform(df)
 X_train, X_val = train_test_split(X, test_size=0.2, random_state=42)
 input_dim = X.shape[1]
 print(input_dim)
+"""
+input_layer = Input(shape=(input_length,))
+
+# Encodeur (réduction de la dimension)
+encoded = Dense(64, activation='relu')(input_layer)  # Augmenter la largeur de la couche cachée
+encoded = Dropout(0.2)(encoded)  # Dropout pour éviter le surapprentissage
+encoded = Dense(32, activation='relu')(encoded)  # Réduction de la dimension encore plus faible
+
+# Décodeur (reconstruction de la donnée originale)
+decoded = Dense(64, activation='relu')(encoded)
+decoded = Dropout(0.2)(decoded)  # Dropout pour éviter le surapprentissage
+decoded = Dense(input_dim, activation='linear')(decoded)  # Activation linéaire pour reconstruire l'entrée
 
 
+model = Model(input_layer, decoded)
+model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss='mse')
 
+
+early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+
+# Entraînement du modèle
+history = autoencoder.fit(X_train, X_train,
+                          epochs=my_epochs,
+                          batch_size=128,
+                          shuffle=True,
+                          validation_data=(X_val, X_val),
+                          callbacks=[early_stopping],  # Ajout du callback EarlyStopping
+                          verbose=1)
+
+model.fit(X_train, X_train, epochs=my_epochs,batch_size=128, shuffle=False, validation_data=(X_val, X_val))
+"""
 
 '''
 # Here : prepare input data
@@ -98,6 +129,7 @@ scaler = StandardScaler()
 x_train = scaler.fit_transform(x_train)
 x_test = scaler.transform(x_test)
 '''
+
 
 # Train of the autoencoder from autoencoder.py
 autoencoder = autoencoder(my_epochs,input_length)
