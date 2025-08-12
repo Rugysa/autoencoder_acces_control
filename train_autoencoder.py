@@ -1,4 +1,5 @@
 from autoencoder import autoencoder
+from CustomOneHotEncoder import CustomOneHotEncoder
 import pandas as pd
 import numpy as np
 import sklearn
@@ -12,7 +13,7 @@ from keras.models import Model
 
 # Parameters definition
 my_epochs = 30
-input_length = 16
+input_length = 14
 
 
 # Import data
@@ -26,6 +27,10 @@ df.columns = [col.strip() for col in df.columns]
 
 # Enleve les données anormales
 df = df[df['access_granted'] == True].copy()
+
+# Enelve les colonnes inutiles à l'apprentissage
+df.drop(columns=['ev_user_id', 'charger_id', 'behavior_context','risk_score'], inplace=True) 
+
 
 # Transformer le timestamp
 df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -41,24 +46,47 @@ df.drop(columns=['timestamp', 'hour', 'day_of_week'], inplace=True)
 df[['lat', 'lon']] = df['geo_coordinates'].str.split(',', expand=True).astype(float)
 df.drop(columns=['geo_coordinates'], inplace=True)
 
+encoder = CustomOneHotEncoder(column='location')
+encoder.fit(df)
+
+# Transforme la colonne catégorielle avant le pipeline
+one_hot_transformed = encoder.transform(df)
+
+# Ajouter les colonnes One-Hot transformées au DataFrame original (si nécessaire)
+df = pd.concat([df, one_hot_transformed], axis=1)
+
 # Supprimer access_granted (utilisé plus tard pour l'évaluation)
 df.drop(columns=['access_granted'], inplace=True) # suppression car non supervisé (entriané que sur données normales, mais du coup ici on a des donnes anormales)
 
 # Colonnes numériques et catégorielles
-num_cols = ['session_duration', 'power_usage', 'risk_score', 'lat', 'lon',
+num_cols = ['session_duration', 'power_usage', 'lat', 'lon',
             'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos']
-cat_cols = ['role', 'location', 'behavior_context']
+cat_cols = ['role']
+loc_col = ['location']
 
 # Vérification rapide
 assert all(col in df.columns for col in num_cols + cat_cols), "Colonne manquante !"
+
+
+
+
 
 # Pipeline de prétraitement
 preprocessor = ColumnTransformer(
     transformers=[
         ('num', MinMaxScaler(), num_cols),
-        ('cat', OneHotEncoder(), cat_cols)
+        ('cat', OneHotEncoder, cat_cols)  # cat_cols : colonnes catégorielles
     ]
 )
+
+
+
+
+
+
+
+
+
 
 # Transformation
 X = preprocessor.fit_transform(df)

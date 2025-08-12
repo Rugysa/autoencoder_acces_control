@@ -29,7 +29,7 @@ class autoencoder :
   # Return the decoder model's if necessary
   def decoder(self): 
     decoded = Dense(64, activation='relu')(self.output_encoder) 
-    self.output = Dense(16, activation='linear')(decoded)
+    self.output = Dense(14, activation='linear')(decoded)
     self.decoder = Model(self.output_encoder, self.output)
     return self.decoder
 

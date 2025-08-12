@@ -24,6 +24,9 @@ df = pd.read_csv("full_dataset.csv")
 # Nettoyer les noms de colonnes
 df.columns = [col.strip() for col in df.columns]
 
+# Enelve les colonnes inutiles à l'apprentissage
+df.drop(columns=['ev_user_id', 'charger_id', 'behavior_context','risk_score'], inplace=True) 
+
 # Transformer le timestamp
 df['timestamp'] = pd.to_datetime(df['timestamp'])
 df['hour'] = df['timestamp'].dt.hour
@@ -40,9 +43,9 @@ df.drop(columns=['geo_coordinates'], inplace=True)
 
 
 # Colonnes numériques et catégorielles
-num_cols = ['session_duration', 'power_usage', 'risk_score', 'lat', 'lon',
+num_cols = ['session_duration', 'power_usage', 'lat', 'lon',
             'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos']
-cat_cols = ['role', 'location', 'behavior_context']
+cat_cols = ['role', 'location', ]
 
 
 # Enleve les données normales
