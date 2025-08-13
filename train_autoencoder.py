@@ -13,7 +13,7 @@ from keras.models import Model
 
 # Parameters definition
 my_epochs = 30
-input_length = 14
+input_length = 8
 
 
 # Import data
@@ -49,14 +49,22 @@ df.drop(columns=['geo_coordinates'], inplace=True)
 encoder = CustomOneHotEncoder(column='location')
 encoder.fit(df)
 
-# Transforme la colonne catégorielle avant le pipeline
-one_hot_transformed = encoder.transform(df)
 
-# Ajouter les colonnes One-Hot transformées au DataFrame original (si nécessaire)
-df = pd.concat([df, one_hot_transformed], axis=1)
+encoder_role = CustomOneHotEncoder(column='role')
+encoder_role.fit(df)
 
 # Supprimer access_granted (utilisé plus tard pour l'évaluation)
 df.drop(columns=['access_granted'], inplace=True) # suppression car non supervisé (entriané que sur données normales, mais du coup ici on a des donnes anormales)
+
+# Transforme la colonne catégorielle avant le pipeline
+one_hot_transformed = encoder.transform(df)
+one_hot_transformed_role = encoder_role.transform(df)
+
+# Ajouter les colonnes One-Hot transformées au DataFrame original (si nécessaire)
+df = pd.concat([df, one_hot_transformed], axis=1)
+df = pd.concat([df, one_hot_transformed_role], axis=1)
+
+
 
 # Colonnes numériques et catégorielles
 num_cols = ['session_duration', 'power_usage', 'lat', 'lon',
@@ -74,8 +82,7 @@ assert all(col in df.columns for col in num_cols + cat_cols), "Colonne manquante
 # Pipeline de prétraitement
 preprocessor = ColumnTransformer(
     transformers=[
-        ('num', MinMaxScaler(), num_cols),
-        ('cat', OneHotEncoder, cat_cols)  # cat_cols : colonnes catégorielles
+        ('num', MinMaxScaler(), num_cols)
     ]
 )
 

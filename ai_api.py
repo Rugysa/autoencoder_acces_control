@@ -7,6 +7,7 @@ from risk_utils import risk_utils
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from CustomOneHotEncoder import CustomOneHotEncoder
 
 
 
@@ -42,10 +43,20 @@ df[['lat', 'lon']] = df['geo_coordinates'].str.split(',', expand=True).astype(fl
 df.drop(columns=['geo_coordinates'], inplace=True)
 
 
+encoder = CustomOneHotEncoder(column='location')
+encoder.fit(df)
+
+encoder_role = CustomOneHotEncoder(column='role')
+encoder_role.fit(df)
+
+
+
+
+
 # Colonnes numériques et catégorielles
 num_cols = ['session_duration', 'power_usage', 'lat', 'lon',
             'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos']
-cat_cols = ['role', 'location', ]
+cat_cols = ['role' ]
 
 
 # Enleve les données normales
@@ -54,18 +65,39 @@ df_neg = df[df['access_granted'] == False].copy()
 df_pos = df[df['access_granted'] == True].copy()
 
 
+
+
 # Supprimer access_granted (utilisé plus tard pour l'évaluation)
 df_pos.drop(columns=['access_granted'], inplace=True) # suppression car non supervisé (entriané que sur données normales, mais du coup ici on a des donnes anormales)
 # Supprimer access_granted (utilisé plus tard pour l'évaluation)
 df_neg.drop(columns=['access_granted'], inplace=True) # suppression car non supervisé (entriané que sur données normales, mais du coup ici on a des donnes anormales)
 
+print(df_pos)
+print(df_neg)
+
+
+# Transforme la colonne catégorielle avant le pipeline
+one_hot_transformed_pos = encoder.transform(df_pos)
+one_hot_transformed_pos_role = encoder_role.transform(df_pos)
+
+# Ajouter les colonnes One-Hot transformées au DataFrame original (si nécessaire)
+df_pos = pd.concat([df_pos, one_hot_transformed_pos], axis=1)
+df_pos = pd.concat([df_pos, one_hot_transformed_pos_role], axis=1)
+
+# Transforme la colonne catégorielle avant le pipeline
+one_hot_transformed_neg = encoder.transform(df_neg)
+one_hot_transformed_neg_role = encoder_role.transform(df_neg)
+
+# Ajouter les colonnes One-Hot transformées au DataFrame original (si nécessaire)
+df_neg = pd.concat([df_neg, one_hot_transformed_neg], axis=1)
+df_neg = pd.concat([df_neg, one_hot_transformed_neg_role], axis=1)
+
 
 # Pipeline de prétraitement
 preprocessor = ColumnTransformer(
     transformers=[
-        ('num', MinMaxScaler(), num_cols),
-        ('cat', OneHotEncoder(), cat_cols)
-    ]
+        ('num', MinMaxScaler(), num_cols)
+        ]
 )
 
 # Transformation
@@ -107,16 +139,19 @@ ai_engine = keras.models.load_model("model/autoencoder.keras")
 
 # Prediction of the autoencoder
 # output of positive data
-x_predict = ai_engine.predict(X)
+#x_predict = ai_engine.predict(X)
 # output of negative data 
 x_predict_neg = ai_engine.predict(X_neg)
 
+
+
 # Console display of distances and tags
 # Positive data
+"""
 print('Dist positive data')
 dist = sklearn.metrics.mean_squared_error(X, x_predict)
 print(dist)
-print(label(dist))
+print(label(dist))"""
 
 # Negative data
 print('Dist negative data')
