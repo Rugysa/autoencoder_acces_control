@@ -1,26 +1,27 @@
 import keras
 from keras.layers import Input, Dense
 from keras.models import Model
-import numpy as np
-from sklearn.preprocessing import StandardScaler
 
 
 # input dimension -> type of layer -> output dimension
 # here :  
-# Autoencoder consistinf of : 10 -> Dense -> 6 -> Dense -> 2 -> Dense -> 6 -> Dense -> 10
+# Autoencoder consistinf of : 8 -> Dense -> 8 -> Dense -> 4 -> Dense -> 8 -> Dense -> 8
 # Autoencoer define by number of epoch (nb_epochs) and the dimension of the input (input_length)
 class autoencoder :
 
   def __init__(self,nb_epochs : int, input_length : int) :
     self.epochs = nb_epochs
     self.input = Input(shape=(input_length,))
+    self.input_size = input_length
+    self.latent_space_size = 4
+    self.inter_layer_size = 8
 
   # Definition of encoder
-  # 10 -> Dense -> 6 -> Dense -> 2
+  # 8 -> Dense -> 8 -> Dense -> 4
   # Return the encoder model's if necessary
   def encoder(self):
-    encoded = Dense(64, activation='relu',)(self.input)
-    self.output_encoder = Dense(32, activation='relu',)(encoded)
+    encoded = Dense(self.inter_layer_size , activation='relu',)(self.input)
+    self.output_encoder = Dense(self.latent_space_size, activation='relu',)(encoded)
     self.encoder = Model(self.input, self.output_encoder)
     return self.encoder
 
@@ -28,8 +29,8 @@ class autoencoder :
   # 2 -> Dense -> 6 -> Dense -> 10
   # Return the decoder model's if necessary
   def decoder(self): 
-    decoded = Dense(64, activation='relu')(self.output_encoder) 
-    self.output = Dense(8, activation='linear')(decoded)
+    decoded = Dense(self.inter_layer_size , activation='relu')(self.output_encoder)
+    self.output = Dense(self.input_size, activation='linear')(decoded)
     self.decoder = Model(self.output_encoder, self.output)
     return self.decoder
 
@@ -43,10 +44,8 @@ class autoencoder :
     self.encoder()
     self.decoder()
     self.model()
-    self.model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.01), loss='mse')
+    self.model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0001), loss='mse')
 
   def save(self) :
     # Using Keras
     self.model.save("model/autoencoder.keras")
-    # Using PyTorch
-    #torch.save(self.model.state_dict(), 'autoencoder.pth')
