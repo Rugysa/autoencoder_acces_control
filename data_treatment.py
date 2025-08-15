@@ -62,8 +62,8 @@ class data_treatment :
         input_df = self.encoder_role.transform(input_df)
         return input_df
 
-    # Processing numerical columns
-    def numerical_data_treatment (self) :
+    # Processing numerical columns and transform the dataframe into a vector for the autoencoder
+    def numerical_data_treatment (self,input_df) :
         num_cols = ['session_duration', 'power_usage', 'lat', 'lon',
                     'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos']
 
@@ -72,9 +72,6 @@ class data_treatment :
                 ('num', MinMaxScaler(), num_cols)
             ]
         )
-
-    # Transform the dataframe into a vector for the autoencoder
-    def final_transformation(self,input_df) :
         X = self.preprocessor.fit_transform(input_df)
         return X
-        
+    

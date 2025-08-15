@@ -26,7 +26,7 @@ class autoencoder :
     return self.encoder
 
   # Definition of decoder
-  # 2 -> Dense -> 6 -> Dense -> 10
+  # 4 -> Dense -> 8 -> Dense -> 8
   # Return the decoder model's if necessary
   def decoder(self): 
     decoded = Dense(self.inter_layer_size , activation='relu')(self.output_encoder)

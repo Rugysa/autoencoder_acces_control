@@ -20,8 +20,8 @@ data_treatment.coordonates_treatment()
 data_treatment.init_customOneHotEncoder()
 df_pos = data_treatment.filer_data(True)
 df_pos = data_treatment.textual_data_treatment(df_pos)
-data_treatment.numerical_data_treatment()
-X = data_treatment.final_transformation(df_pos)
+X = data_treatment.numerical_data_treatment(df_pos)
+
 
 # Split train/val
 X_train, X_val = train_test_split(X, test_size=0.2, random_state=42)

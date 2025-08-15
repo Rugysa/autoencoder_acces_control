@@ -26,10 +26,8 @@ df_neg = data_treatment.filer_data(False)
 df_neg = data_treatment.textual_data_treatment(df_neg)
 
 # numerical treatment is the same for every data type
-data_treatment.numerical_data_treatment()
-
-X = data_treatment.final_transformation(df_pos)
-X_neg = data_treatment.final_transformation(df_neg)
+X = data_treatment.numerical_data_treatment(df_pos)
+X_neg = data_treatment.numerical_data_treatment(df_neg)
 
 # Load the model from .keras
 ai_engine = keras.models.load_model("model/autoencoder.keras")
